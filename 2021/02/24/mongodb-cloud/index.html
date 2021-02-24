@@ -18,13 +18,11 @@
 <meta property="og:site_name" content="Rookie">
 <meta property="og:description" content="引言本次实践部署mongodb集群，主要借鉴于该博客（https:&#x2F;&#x2F;blog.csdn.net&#x2F;weixin_42104521&#x2F;article&#x2F;details&#x2F;103731266）。 一、原理简析Mongodb一共有三种集群搭建的方式：Replica Set（副本集）、Sharding（切片）Master-Slaver（主从） &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbs">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="https://img-blog.csdnimg.cn/20201210164622637.jpg#pic_center">
-<meta property="article:published_time" content="2021-02-24T03:41:46.881Z">
-<meta property="article:modified_time" content="2021-02-24T03:19:44.377Z">
+<meta property="article:published_time" content="2021-02-24T05:53:34.148Z">
+<meta property="article:modified_time" content="2021-02-24T05:53:34.147Z">
 <meta property="article:author" content="rookielsc">
 <meta property="article:tag" content="mongodb">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20201210164622637.jpg#pic_center">
 
     
     <link rel="alternative" href="/atom.xml" title="Rookie" type="application/atom+xml">
@@ -95,7 +93,7 @@
 		<a href="/about" title="rookielsc" target="_blank" itemprop="author">rookielsc</a>
 		
   <p class="article-time">
-    <time datetime="2021-02-24T03:41:46.881Z" itemprop="datePublished"> 发表于 2021-02-24</time>
+    <time datetime="2021-02-24T05:53:34.148Z" itemprop="datePublished"> 发表于 2021-02-24</time>
     
   </p>
 </header>
@@ -113,8 +111,7 @@
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mongoDB目前已不推荐使用主从模式，取而代之的是副本集模式。副本集其实一种互为主从的关系，可理解为主主。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;副本集：指将数据复制，多份保存，不同服务器保存同一份数据，在出现故障时自动切换。对应的是数据冗余、备份、镜像、读写分离、高可用性等关键词；<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;分片：则指为处理大量数据，将数据分开存储，不同服务器保存不同的数据，它们的数据总和即为整个数据集。追求的是高性能。</p>
 <h2 id="本实验模拟的MongoDB集群分以下几个层次或角色"><a href="#本实验模拟的MongoDB集群分以下几个层次或角色" class="headerlink" title="本实验模拟的MongoDB集群分以下几个层次或角色"></a>本实验模拟的MongoDB集群分以下几个层次或角色</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mongos层：请求的入口，是router的角色，相当于监听，负责将请求分发到对应的存储数据的shard上，多副本冗余</span><br><span class="line"></span><br><span class="line">config server层：记录了mongos中使用到的元数据，自动向mongos同步最新的集群配置，多副本冗余</span><br><span class="line"></span><br><span class="line">shard主节点层：将数据分片，数据库拆分，并将其分散在不同的机器上，原理是将整个数据集合切块</span><br><span class="line">块分散到各个shard中，每个shard只负责总数据的一部分，通过一个均衡器来对各个shard均衡，多副本冗余</span><br><span class="line"></span><br><span class="line">shard副本层：是shard的备份，多副本冗余</span><br><span class="line"></span><br><span class="line">shard仲裁层：用于仲裁，不存储数据，使用最小的资源，需要基数个仲裁角色，且不能放在同一设备上</span><br></pre></td></tr></table></figure>
 
-<h2 id="主机角色端口规划"><a href="#主机角色端口规划" class="headerlink" title="主机角色端口规划"></a>主机角色端口规划</h2><p>本次实践在自建虚拟机进行，有个别需求的同学，可以购买华为云ECS进行部署。 <a target="_blank" rel="noopener" href="https://www.huaweicloud.com/product/ecs.html?fromacct=3bd5690a-7b8f-4aae-bcf8-f066a96d615c&utm_source=V1g3MDY4NTY=&utm_medium=cps&utm_campaign=201905">华为云-2核4G云主机低至487元/年</a>（新用户1.5折起）<br><img src="https://img-blog.csdnimg.cn/20201210164622637.jpg#pic_center"></p>
-<table>
+<h2 id="主机角色端口规划"><a href="#主机角色端口规划" class="headerlink" title="主机角色端口规划"></a>主机角色端口规划</h2><table>
 <thead>
 <tr>
 <th>服务器</th>
@@ -227,14 +224,14 @@
 	
 <nav class="article-nav clearfix">
  
- <div class="prev" >
- <a href="/2021/02/24/rabbitmq-mirror/" title="Dokcer 部署RabbitMQ集群-镜像模式（实战）">
-  <strong>上一篇：</strong><br/>
-  <span>
-  Dokcer 部署RabbitMQ集群-镜像模式（实战）</span>
+
+<div class="next">
+<a href="/2021/02/24/rabbitmq-mirror/"  title="Dokcer 部署RabbitMQ集群-镜像模式（实战）">
+ <strong>下一篇：</strong><br/> 
+ <span>Dokcer 部署RabbitMQ集群-镜像模式（实战）
+</span>
 </a>
 </div>
-
 
 </nav>
 

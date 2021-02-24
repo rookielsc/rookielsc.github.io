@@ -83,116 +83,6 @@
         <header class="article-info clearfix">
   <h1 itemprop="name">
     
-      <a href="/2021/02/24/rabbitmq-mirror/" title="Dokcer 部署RabbitMQ集群-镜像模式（实战）" itemprop="url">Dokcer 部署RabbitMQ集群-镜像模式（实战）</a>
-  </h1>
-  <p class="article-author">By
-       
-		<a href="/about" title="rookielsc" target="_blank" itemprop="author">rookielsc</a>
-		
-  <p class="article-time">
-    <time datetime="2021-02-24T05:50:51.906Z" itemprop="datePublished"> 发表于 2021-02-24</time>
-    
-  </p>
-</header>
-    <div class="article-content">
-        
-        <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><h2 id="RabbiMQ模式"><a href="#RabbiMQ模式" class="headerlink" title="RabbiMQ模式"></a>RabbiMQ模式</h2><p>RabbitMQ模式大概分为以下三种:</p>
-<ol>
-<li>单一模式。</li>
-<li>普通模式(默认的集群模式)。</li>
-<li>镜像模式(把需要的队列做成镜像队列，存在于多个节点，属于RabbiMQ的HA方案，在对业务可靠性要求较高的场合中比较适用)。</li>
-</ol>
-<h2 id="RabbiMQ模式详解"><a href="#RabbiMQ模式详解" class="headerlink" title="RabbiMQ模式详解"></a>RabbiMQ模式详解</h2><p> abbitmq普通集群模式，是将交换机、绑定、队列的元数据复制到集群里的任何一个节点，但队列内容只存在于特定的节点中，客户端通过连接集群中任意一个节点，即可以生产和消费集群中的任何队列内容（因为每个节点都有集群中所有队列的元数据信息，如果队列内容不在本节点，则本节点会从远程节点获取内容，然后提供给消费者消费）。<br>   从该模式不难看出，普通集群可以让不同的繁忙队列从属于不同的节点，这样可以减轻单节点的压力，提升吞吐量，但是普通集群不能保证队列的高可用性，因为一旦队列所在节点宕机直接导致该队列无法使用，只能等待重启，所以要想在队列节点宕机或故障也能正常使用，就要复制队列内容到集群里的每个节点，需要创建镜像队列。<br>  rabbitmq镜像集群依赖于普通集群，所以需要先搭建rabbitmq普通集群。</p>
-<h2 id="环境说明"><a href="#环境说明" class="headerlink" title="环境说明"></a>环境说明</h2><p>要实现镜像模式，需要先搭建一个普通集群模式，在这个模式的基础上再配置镜像模式以实现高可用，本次实践部署rabbitmq采用的版本（rabbitmq:3.8.7-management）。</p>
-<h3 id="主机列表"><a href="#主机列表" class="headerlink" title="主机列表"></a>主机列表</h3><table>
-<thead>
-<tr>
-<th>主机</th>
-<th>节点模式</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>192.168.1.32</td>
-<td>磁盘节点</td>
-</tr>
-<tr>
-<td>192.168.1.33</td>
-<td>内存节点</td>
-</tr>
-<tr>
-<td>192.168.1.35</td>
-<td>内存节点</td>
-</tr>
-</tbody></table>
-<h1 id="部署RabbitMQ"><a href="#部署RabbitMQ" class="headerlink" title="部署RabbitMQ"></a>部署RabbitMQ</h1><h2 id="1-创建持久数据目录"><a href="#1-创建持久数据目录" class="headerlink" title="1.创建持久数据目录"></a>1.创建持久数据目录</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir /data/rabbitmq -p   //三台主机均执行</span><br></pre></td></tr></table></figure>
-
-<h2 id="2-host配置-rabbitmq集群需要解析主机名"><a href="#2-host配置-rabbitmq集群需要解析主机名" class="headerlink" title="2.host配置(rabbitmq集群需要解析主机名)"></a>2.host配置(rabbitmq集群需要解析主机名)</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /data/rabbitmq</span><br><span class="line">vim hosts</span><br><span class="line"><span class="comment"># hosts 内容</span></span><br><span class="line">192.168.1.32 rabbit1</span><br><span class="line">192.168.1.33 rabbit2</span><br><span class="line">192.168.1.35 rabbit3</span><br><span class="line"></span><br></pre></td></tr></table></figure>
-
-<h2 id="3-创建容器"><a href="#3-创建容器" class="headerlink" title="3.创建容器"></a>3.创建容器</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit1 \</span><br><span class="line">  --name rabbit1  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line">  </span><br><span class="line">  docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit2 \</span><br><span class="line">  --name rabbit2  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line">  </span><br><span class="line">  docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit3 \</span><br><span class="line">  --name rabbit3  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line"></span><br><span class="line">注意：hostname 不要重复</span><br></pre></td></tr></table></figure>
-
-<h3 id="参数说明"><a href="#参数说明" class="headerlink" title="参数说明"></a>参数说明</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">-d</span><br><span class="line"><span class="comment">#容器后台运行</span></span><br><span class="line">--restart=always</span><br><span class="line"><span class="comment"># 容器重启策略, always 在容器退出时总是重启容器</span></span><br><span class="line">--net host</span><br><span class="line"><span class="comment">#容器和宿主机共用网络(注意端口冲突)</span></span><br><span class="line">--hostname rabbit1</span><br><span class="line"><span class="comment">#容器的主机名为 rabbit1，容器内部的hostname</span></span><br><span class="line">--name rabbit1</span><br><span class="line"><span class="comment">#容器名为rabbit1，在宿主机上运行“docker ps”命令时显示的名称</span></span><br><span class="line">-v /data/rabbitmq:/var/lib/rabbitmq</span><br><span class="line"><span class="comment">#将宿主机目录/data/rabbitmq挂载到容器的/var/lib/rabbitmq目录</span></span><br><span class="line">-v /data/rabbitmq/hosts:/etc/hosts</span><br><span class="line"><span class="comment">#将宿主机目录/data/rabbitmq/hosts文件挂载到容器的/etc/hosts文件</span></span><br><span class="line">-e RABBITMQ_DEFAULT_USER=user01</span><br><span class="line"><span class="comment">#设置rabbitmq默认用户为user01</span></span><br><span class="line">-e RABBITMQ_DEFAULT_PASS=password01</span><br><span class="line"><span class="comment">#设置rabbitmq默认密码为password01</span></span><br><span class="line">-e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie&#x27;</span></span><br><span class="line"><span class="comment">#设置rabbitmq的cookie为“secret cookie”，可以自定义为其他文本，三个容器保持一致即可。</span></span><br><span class="line">rabbitmq:3.8.7-management</span><br><span class="line"><span class="comment">#使用rabbitmq:3.8.7-management这个镜像</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<p>三台机器都执行上面的命令,hostname和容器name需要修改</p>
-<h2 id="4-将节点2-3加入集群"><a href="#4-将节点2-3加入集群" class="headerlink" title="4.将节点2,3加入集群"></a>4.将节点2,3加入集群</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">在rabbit2机器进入容器的命令行</span><br><span class="line">docker <span class="built_in">exec</span> -it rabbit2 /bin/bash</span><br><span class="line">加入集群</span><br><span class="line">rabbitmqctl stop_app</span><br><span class="line">rabbitmqctl join_cluster rabbit@rabbit1</span><br><span class="line">rabbitmqctl join_cluster rabbit@rabbit1 --ram  //表示该节点为内存节点，默认为磁盘节点。</span><br><span class="line">rabbitmqctl start_app</span><br><span class="line">rabbit3执行相同的命令</span><br><span class="line"></span><br><span class="line">查询集群状态</span><br><span class="line">rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
-<h3 id="特别说明："><a href="#特别说明：" class="headerlink" title="特别说明："></a>特别说明：</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在上述部署已完成的情况下更改节点模式(硬盘模式-disc、内存模式-ram)</span></span><br><span class="line"><span class="comment"># 更改节点: rabbit@rabbit2为硬盘模式,操作如下：</span></span><br><span class="line"><span class="comment"># 进入任意容器内</span></span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 stop_app</span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 change_cluster_node_type disc</span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 start_app</span><br></pre></td></tr></table></figure>
-
-<h2 id="5-配置镜像集群策略"><a href="#5-配置镜像集群策略" class="headerlink" title="5. 配置镜像集群策略"></a>5. 配置镜像集群策略</h2><h3 id="登录管理页面"><a href="#登录管理页面" class="headerlink" title="登录管理页面"></a>登录管理页面</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">新添加用户</span><br><span class="line">rabbitmqctl list_users     //查看用户列表</span><br><span class="line">rabbitmqctl add_user admin 123456   //新增用户、密码</span><br><span class="line">rabbitmqctl set_user_tags admin administrator  // 设置admin用户标记，administrator表示最高权限</span><br><span class="line">rabbitmqctl set_permissions -p <span class="string">&quot;/&quot;</span> admin <span class="string">&quot;.*&quot;</span> <span class="string">&quot;.*&quot;</span> <span class="string">&quot;.*&quot;</span>   //设置权限</span><br></pre></td></tr></table></figure>
-
-<h3 id="开启镜像集群模式"><a href="#开启镜像集群模式" class="headerlink" title="开启镜像集群模式"></a>开启镜像集群模式</h3><p>搭建镜像集群是在web控制台完成的，主要操作就是在Admin界面添加一个Policy<br>添加策略：登录rabbitmq管理页面 ——&gt; Admin ——&gt; Policies ——&gt; Add / update a policy，填写对应的镜像策略。<br><img src="https://img-blog.csdnimg.cn/20201211085637579.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20201211085651109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Policy参数含义</span><br><span class="line">pattern: 队列名字的通配符 或者 ^ 匹配符，只有一个^代表匹配所有</span><br><span class="line">ha-mode：镜像队列提供了三种模式：</span><br><span class="line">        all：全部的节点队列都做镜像；</span><br><span class="line">        exactly：指定镜像队列的节点最高镜像数量；</span><br><span class="line">        nodes：只为指定具体节点配置镜像队列；</span><br><span class="line">ha-sync-mode ：节点之前的同步模式。有自动和手动两种，默认是手动，这里设置为自动。</span><br></pre></td></tr></table></figure>
-
-<p>设置完成并添加了这个策略后，新建的和已存在的队列默认会支持此策略。</p>
-<p>出现如下图所示，表示配置完成<br><img src="https://img-blog.csdnimg.cn/20201211085710284.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>到此，镜像集群部署工作完成。<br>当然如果你觉得麻烦、追求稳定，可在华为云购买rabbitmq服务，双12优惠给力 <a target="_blank" rel="noopener" href="https://www.huaweicloud.com/product/rabbitmq.html?fromacct=3bd5690a-7b8f-4aae-bcf8-f066a96d615c&utm_source=V1g3MDY4NTY=&utm_medium=cps&utm_campaign=201905">华为云-分布式消息队列 RabbitMQ</a><br><img src="https://img-blog.csdnimg.cn/20201211091026204.jpg#pic_center"></p>
-<h1 id="RabbitMQ监控"><a href="#RabbitMQ监控" class="headerlink" title="RabbitMQ监控"></a>RabbitMQ监控</h1><p>使用两种流行的工具介绍RabbitMQ监视： Prometheus，一个监视工具包；和Grafana，一个度量可视化系统。<br>从3.8.0版开始，RabbitMQ附带了内置的Prometheus＆Grafana支持。<br>Rabbitmq_prometheus插件随附了对Prometheus度量标准收集器的支持。该插件以Prometheus文本格式在专用TCP端口上公开所有RabbitMQ指标。<br>这些度量标准提供了对RabbitMQ节点状态和运行时的深入了解。他们使有关RabbitMQ的行为，使用它的应用程序以及各种基础结构元素的推理变得更加明智。</p>
-<h2 id="启用rabbitmq-prometheus"><a href="#启用rabbitmq-prometheus" class="headerlink" title="启用rabbitmq_prometheus"></a>启用rabbitmq_prometheus</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">在所有节点上启用rabbitmq_prometheus 插件</span><br><span class="line">rabbitmq-plugins <span class="built_in">enable</span> rabbitmq_prometheus</span><br></pre></td></tr></table></figure>
-
-<p>获取指标，如下所示有监控指标出现，即表示监控插件开启</p>
-<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">curl -s localhost:15692/metrics | head -n 3</span><br><span class="line"><span class="comment"># TYPE erlang_mnesia_held_locks gauge</span></span><br><span class="line"><span class="comment"># HELP erlang_mnesia_held_locks Number of held locks.</span></span><br><span class="line">erlang_mnesia_held_locks 0</span><br></pre></td></tr></table></figure>
-
-        
-        
-        <p class="article-more-link">
-          
-       </p>
-    </div>
-    <footer class="article-footer clearfix">
-<div class="article-catetags">
-
-<div class="article-categories">
-  <span></span>
-  <a class="article-category-link" href="/categories/%E5%BA%94%E7%94%A8%E9%83%A8%E7%BD%B2/">应用部署</a>
-</div>
-
-
-  <div class="article-tags">
-  
-  <span></span> <a href="/tags/rabbitmq/">rabbitmq</a>
-  </div>
-
-</div>
-
-
-
-
-<div class="comments-count">
-	
-</div>
-
-</footer>
-
-
-    </article>
-
-
-
-
-
-
-   
-    
-    <article class="post-expand post" itemprop="articleBody"> 
-        <header class="article-info clearfix">
-  <h1 itemprop="name">
-    
       <a href="/2021/02/24/mongodb-cloud/" title="Docker部署MongoDB分片+副本集集群(实战)" itemprop="url">Docker部署MongoDB分片+副本集集群(实战)</a>
   </h1>
   <p class="article-author">By
@@ -200,7 +90,7 @@
 		<a href="/about" title="rookielsc" target="_blank" itemprop="author">rookielsc</a>
 		
   <p class="article-time">
-    <time datetime="2021-02-24T03:41:46.881Z" itemprop="datePublished"> 发表于 2021-02-24</time>
+    <time datetime="2021-02-24T05:53:34.148Z" itemprop="datePublished"> 发表于 2021-02-24</time>
     
   </p>
 </header>
@@ -211,8 +101,7 @@
 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mongoDB目前已不推荐使用主从模式，取而代之的是副本集模式。副本集其实一种互为主从的关系，可理解为主主。<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;副本集：指将数据复制，多份保存，不同服务器保存同一份数据，在出现故障时自动切换。对应的是数据冗余、备份、镜像、读写分离、高可用性等关键词；<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;分片：则指为处理大量数据，将数据分开存储，不同服务器保存不同的数据，它们的数据总和即为整个数据集。追求的是高性能。</p>
 <h2 id="本实验模拟的MongoDB集群分以下几个层次或角色"><a href="#本实验模拟的MongoDB集群分以下几个层次或角色" class="headerlink" title="本实验模拟的MongoDB集群分以下几个层次或角色"></a>本实验模拟的MongoDB集群分以下几个层次或角色</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mongos层：请求的入口，是router的角色，相当于监听，负责将请求分发到对应的存储数据的shard上，多副本冗余</span><br><span class="line"></span><br><span class="line">config server层：记录了mongos中使用到的元数据，自动向mongos同步最新的集群配置，多副本冗余</span><br><span class="line"></span><br><span class="line">shard主节点层：将数据分片，数据库拆分，并将其分散在不同的机器上，原理是将整个数据集合切块</span><br><span class="line">块分散到各个shard中，每个shard只负责总数据的一部分，通过一个均衡器来对各个shard均衡，多副本冗余</span><br><span class="line"></span><br><span class="line">shard副本层：是shard的备份，多副本冗余</span><br><span class="line"></span><br><span class="line">shard仲裁层：用于仲裁，不存储数据，使用最小的资源，需要基数个仲裁角色，且不能放在同一设备上</span><br></pre></td></tr></table></figure>
 
-<h2 id="主机角色端口规划"><a href="#主机角色端口规划" class="headerlink" title="主机角色端口规划"></a>主机角色端口规划</h2><p>本次实践在自建虚拟机进行，有个别需求的同学，可以购买华为云ECS进行部署。 <a target="_blank" rel="noopener" href="https://www.huaweicloud.com/product/ecs.html?fromacct=3bd5690a-7b8f-4aae-bcf8-f066a96d615c&utm_source=V1g3MDY4NTY=&utm_medium=cps&utm_campaign=201905">华为云-2核4G云主机低至487元/年</a>（新用户1.5折起）<br><img src="https://img-blog.csdnimg.cn/20201210164622637.jpg#pic_center"></p>
-<table>
+<h2 id="主机角色端口规划"><a href="#主机角色端口规划" class="headerlink" title="主机角色端口规划"></a>主机角色端口规划</h2><table>
 <thead>
 <tr>
 <th>服务器</th>
@@ -309,6 +198,116 @@
   <div class="article-tags">
   
   <span></span> <a href="/tags/mongodb/">mongodb</a>
+  </div>
+
+</div>
+
+
+
+
+<div class="comments-count">
+	
+</div>
+
+</footer>
+
+
+    </article>
+
+
+
+
+
+
+   
+    
+    <article class="post-expand post" itemprop="articleBody"> 
+        <header class="article-info clearfix">
+  <h1 itemprop="name">
+    
+      <a href="/2021/02/24/rabbitmq-mirror/" title="Dokcer 部署RabbitMQ集群-镜像模式（实战）" itemprop="url">Dokcer 部署RabbitMQ集群-镜像模式（实战）</a>
+  </h1>
+  <p class="article-author">By
+       
+		<a href="/about" title="rookielsc" target="_blank" itemprop="author">rookielsc</a>
+		
+  <p class="article-time">
+    <time datetime="2021-02-24T05:53:07.946Z" itemprop="datePublished"> 发表于 2021-02-24</time>
+    
+  </p>
+</header>
+    <div class="article-content">
+        
+        <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><h2 id="RabbiMQ模式"><a href="#RabbiMQ模式" class="headerlink" title="RabbiMQ模式"></a>RabbiMQ模式</h2><p>RabbitMQ模式大概分为以下三种:</p>
+<ol>
+<li>单一模式。</li>
+<li>普通模式(默认的集群模式)。</li>
+<li>镜像模式(把需要的队列做成镜像队列，存在于多个节点，属于RabbiMQ的HA方案，在对业务可靠性要求较高的场合中比较适用)。</li>
+</ol>
+<h2 id="RabbiMQ模式详解"><a href="#RabbiMQ模式详解" class="headerlink" title="RabbiMQ模式详解"></a>RabbiMQ模式详解</h2><p> abbitmq普通集群模式，是将交换机、绑定、队列的元数据复制到集群里的任何一个节点，但队列内容只存在于特定的节点中，客户端通过连接集群中任意一个节点，即可以生产和消费集群中的任何队列内容（因为每个节点都有集群中所有队列的元数据信息，如果队列内容不在本节点，则本节点会从远程节点获取内容，然后提供给消费者消费）。<br>   从该模式不难看出，普通集群可以让不同的繁忙队列从属于不同的节点，这样可以减轻单节点的压力，提升吞吐量，但是普通集群不能保证队列的高可用性，因为一旦队列所在节点宕机直接导致该队列无法使用，只能等待重启，所以要想在队列节点宕机或故障也能正常使用，就要复制队列内容到集群里的每个节点，需要创建镜像队列。<br>  rabbitmq镜像集群依赖于普通集群，所以需要先搭建rabbitmq普通集群。</p>
+<h2 id="环境说明"><a href="#环境说明" class="headerlink" title="环境说明"></a>环境说明</h2><p>要实现镜像模式，需要先搭建一个普通集群模式，在这个模式的基础上再配置镜像模式以实现高可用，本次实践部署rabbitmq采用的版本（rabbitmq:3.8.7-management）。</p>
+<h3 id="主机列表"><a href="#主机列表" class="headerlink" title="主机列表"></a>主机列表</h3><table>
+<thead>
+<tr>
+<th>主机</th>
+<th>节点模式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>192.168.1.32</td>
+<td>磁盘节点</td>
+</tr>
+<tr>
+<td>192.168.1.33</td>
+<td>内存节点</td>
+</tr>
+<tr>
+<td>192.168.1.35</td>
+<td>内存节点</td>
+</tr>
+</tbody></table>
+<h1 id="部署RabbitMQ"><a href="#部署RabbitMQ" class="headerlink" title="部署RabbitMQ"></a>部署RabbitMQ</h1><h2 id="1-创建持久数据目录"><a href="#1-创建持久数据目录" class="headerlink" title="1.创建持久数据目录"></a>1.创建持久数据目录</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir /data/rabbitmq -p   //三台主机均执行</span><br></pre></td></tr></table></figure>
+
+<h2 id="2-host配置-rabbitmq集群需要解析主机名"><a href="#2-host配置-rabbitmq集群需要解析主机名" class="headerlink" title="2.host配置(rabbitmq集群需要解析主机名)"></a>2.host配置(rabbitmq集群需要解析主机名)</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /data/rabbitmq</span><br><span class="line">vim hosts</span><br><span class="line"><span class="comment"># hosts 内容</span></span><br><span class="line">192.168.1.32 rabbit1</span><br><span class="line">192.168.1.33 rabbit2</span><br><span class="line">192.168.1.35 rabbit3</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h2 id="3-创建容器"><a href="#3-创建容器" class="headerlink" title="3.创建容器"></a>3.创建容器</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit1 \</span><br><span class="line">  --name rabbit1  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line">  </span><br><span class="line">  docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit2 \</span><br><span class="line">  --name rabbit2  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line">  </span><br><span class="line">  docker run -d --restart=always \</span><br><span class="line">  --net host \</span><br><span class="line">  --hostname rabbit3 \</span><br><span class="line">  --name rabbit3  \</span><br><span class="line">  -v /data/rabbitmq:/var/lib/rabbitmq \</span><br><span class="line">  -v /data/rabbitmq/hosts:/etc/hosts \</span><br><span class="line">  -e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie here&#x27;</span> \</span><br><span class="line">  rabbitmq:3.8.7-management</span><br><span class="line"></span><br><span class="line">注意：hostname 不要重复</span><br></pre></td></tr></table></figure>
+
+<h3 id="参数说明"><a href="#参数说明" class="headerlink" title="参数说明"></a>参数说明</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">-d</span><br><span class="line"><span class="comment">#容器后台运行</span></span><br><span class="line">--restart=always</span><br><span class="line"><span class="comment"># 容器重启策略, always 在容器退出时总是重启容器</span></span><br><span class="line">--net host</span><br><span class="line"><span class="comment">#容器和宿主机共用网络(注意端口冲突)</span></span><br><span class="line">--hostname rabbit1</span><br><span class="line"><span class="comment">#容器的主机名为 rabbit1，容器内部的hostname</span></span><br><span class="line">--name rabbit1</span><br><span class="line"><span class="comment">#容器名为rabbit1，在宿主机上运行“docker ps”命令时显示的名称</span></span><br><span class="line">-v /data/rabbitmq:/var/lib/rabbitmq</span><br><span class="line"><span class="comment">#将宿主机目录/data/rabbitmq挂载到容器的/var/lib/rabbitmq目录</span></span><br><span class="line">-v /data/rabbitmq/hosts:/etc/hosts</span><br><span class="line"><span class="comment">#将宿主机目录/data/rabbitmq/hosts文件挂载到容器的/etc/hosts文件</span></span><br><span class="line">-e RABBITMQ_DEFAULT_USER=user01</span><br><span class="line"><span class="comment">#设置rabbitmq默认用户为user01</span></span><br><span class="line">-e RABBITMQ_DEFAULT_PASS=password01</span><br><span class="line"><span class="comment">#设置rabbitmq默认密码为password01</span></span><br><span class="line">-e RABBITMQ_ERLANG_COOKIE=<span class="string">&#x27;secret cookie&#x27;</span></span><br><span class="line"><span class="comment">#设置rabbitmq的cookie为“secret cookie”，可以自定义为其他文本，三个容器保持一致即可。</span></span><br><span class="line">rabbitmq:3.8.7-management</span><br><span class="line"><span class="comment">#使用rabbitmq:3.8.7-management这个镜像</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<p>三台机器都执行上面的命令,hostname和容器name需要修改</p>
+<h2 id="4-将节点2-3加入集群"><a href="#4-将节点2-3加入集群" class="headerlink" title="4.将节点2,3加入集群"></a>4.将节点2,3加入集群</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">在rabbit2机器进入容器的命令行</span><br><span class="line">docker <span class="built_in">exec</span> -it rabbit2 /bin/bash</span><br><span class="line">加入集群</span><br><span class="line">rabbitmqctl stop_app</span><br><span class="line">rabbitmqctl join_cluster rabbit@rabbit1</span><br><span class="line">rabbitmqctl join_cluster rabbit@rabbit1 --ram  //表示该节点为内存节点，默认为磁盘节点。</span><br><span class="line">rabbitmqctl start_app</span><br><span class="line">rabbit3执行相同的命令</span><br><span class="line"></span><br><span class="line">查询集群状态</span><br><span class="line">rabbitmqctl cluster_status</span><br></pre></td></tr></table></figure>
+<h3 id="特别说明："><a href="#特别说明：" class="headerlink" title="特别说明："></a>特别说明：</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在上述部署已完成的情况下更改节点模式(硬盘模式-disc、内存模式-ram)</span></span><br><span class="line"><span class="comment"># 更改节点: rabbit@rabbit2为硬盘模式,操作如下：</span></span><br><span class="line"><span class="comment"># 进入任意容器内</span></span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 stop_app</span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 change_cluster_node_type disc</span><br><span class="line">rabbitmqctl -n rabbit@rabbit2 start_app</span><br></pre></td></tr></table></figure>
+
+<h2 id="5-配置镜像集群策略"><a href="#5-配置镜像集群策略" class="headerlink" title="5. 配置镜像集群策略"></a>5. 配置镜像集群策略</h2><h3 id="登录管理页面"><a href="#登录管理页面" class="headerlink" title="登录管理页面"></a>登录管理页面</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">新添加用户</span><br><span class="line">rabbitmqctl list_users     //查看用户列表</span><br><span class="line">rabbitmqctl add_user admin 123456   //新增用户、密码</span><br><span class="line">rabbitmqctl set_user_tags admin administrator  // 设置admin用户标记，administrator表示最高权限</span><br><span class="line">rabbitmqctl set_permissions -p <span class="string">&quot;/&quot;</span> admin <span class="string">&quot;.*&quot;</span> <span class="string">&quot;.*&quot;</span> <span class="string">&quot;.*&quot;</span>   //设置权限</span><br></pre></td></tr></table></figure>
+
+<h3 id="开启镜像集群模式"><a href="#开启镜像集群模式" class="headerlink" title="开启镜像集群模式"></a>开启镜像集群模式</h3><p>搭建镜像集群是在web控制台完成的，主要操作就是在Admin界面添加一个Policy<br>添加策略：登录rabbitmq管理页面 ——&gt; Admin ——&gt; Policies ——&gt; Add / update a policy，填写对应的镜像策略。<br><img src="https://img-blog.csdnimg.cn/20201211085637579.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br><img src="https://img-blog.csdnimg.cn/20201211085651109.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Policy参数含义</span><br><span class="line">pattern: 队列名字的通配符 或者 ^ 匹配符，只有一个^代表匹配所有</span><br><span class="line">ha-mode：镜像队列提供了三种模式：</span><br><span class="line">        all：全部的节点队列都做镜像；</span><br><span class="line">        exactly：指定镜像队列的节点最高镜像数量；</span><br><span class="line">        nodes：只为指定具体节点配置镜像队列；</span><br><span class="line">ha-sync-mode ：节点之前的同步模式。有自动和手动两种，默认是手动，这里设置为自动。</span><br></pre></td></tr></table></figure>
+
+<p>设置完成并添加了这个策略后，新建的和已存在的队列默认会支持此策略。</p>
+<p>出现如下图所示，表示配置完成<br><img src="https://img-blog.csdnimg.cn/20201211085710284.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70#pic_center" alt="在这里插入图片描述"><br>到此，镜像集群部署工作完成。</p>
+<h1 id="RabbitMQ监控"><a href="#RabbitMQ监控" class="headerlink" title="RabbitMQ监控"></a>RabbitMQ监控</h1><p>使用两种流行的工具介绍RabbitMQ监视： Prometheus，一个监视工具包；和Grafana，一个度量可视化系统。<br>从3.8.0版开始，RabbitMQ附带了内置的Prometheus＆Grafana支持。<br>Rabbitmq_prometheus插件随附了对Prometheus度量标准收集器的支持。该插件以Prometheus文本格式在专用TCP端口上公开所有RabbitMQ指标。<br>这些度量标准提供了对RabbitMQ节点状态和运行时的深入了解。他们使有关RabbitMQ的行为，使用它的应用程序以及各种基础结构元素的推理变得更加明智。</p>
+<h2 id="启用rabbitmq-prometheus"><a href="#启用rabbitmq-prometheus" class="headerlink" title="启用rabbitmq_prometheus"></a>启用rabbitmq_prometheus</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">在所有节点上启用rabbitmq_prometheus 插件</span><br><span class="line">rabbitmq-plugins <span class="built_in">enable</span> rabbitmq_prometheus</span><br></pre></td></tr></table></figure>
+
+<p>获取指标，如下所示有监控指标出现，即表示监控插件开启</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">curl -s localhost:15692/metrics | head -n 3</span><br><span class="line"><span class="comment"># TYPE erlang_mnesia_held_locks gauge</span></span><br><span class="line"><span class="comment"># HELP erlang_mnesia_held_locks Number of held locks.</span></span><br><span class="line">erlang_mnesia_held_locks 0</span><br></pre></td></tr></table></figure>
+
+        
+        
+        <p class="article-more-link">
+          
+       </p>
+    </div>
+    <footer class="article-footer clearfix">
+<div class="article-catetags">
+
+<div class="article-categories">
+  <span></span>
+  <a class="article-category-link" href="/categories/%E5%BA%94%E7%94%A8%E9%83%A8%E7%BD%B2/">应用部署</a>
+</div>
+
+
+  <div class="article-tags">
+  
+  <span></span> <a href="/tags/rabbitmq/">rabbitmq</a>
   </div>
 
 </div>
