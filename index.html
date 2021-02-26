@@ -95,7 +95,7 @@
       <h1 class="site-title">kocd's blog</h1>
       <span class="logo-line-after"><i></i></span>
     </a>
-      <p class="site-subtitle" itemprop="description">分享自己对某一技术点的理解，在学习以及分享的同时如果交到几个朋友那更是意外收获。</p>
+      <p class="site-subtitle" itemprop="description">分享自己对某一技术点的理解，收录优秀的文章，在学习以及分享的同时如果交到几个朋友那更是意外收获。</p>
   </div>
 
   <div class="site-nav-right">
@@ -185,6 +185,91 @@
 
           <div class="content index posts-expand">
             
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://blog.kocdyun.cn/2021/02/26/linux-cmd-1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/logo.jpg">
+      <meta itemprop="name" content="菜菜">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="kocd's blog">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          
+            <a href="/2021/02/26/linux-cmd-1/" class="post-title-link" itemprop="url">Linux命令（1）—— xargs</a>
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-02-26 08:59:09" itemprop="dateCreated datePublished" datetime="2021-02-26T08:59:09+08:00">2021-02-26</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/linux%E5%91%BD%E4%BB%A4%E9%9B%86/" itemprop="url" rel="index"><span itemprop="name">linux命令集</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <span id="more"></span>
+
+
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">转自：恋猫大鲤鱼</span><br><span class="line">https://dablelv.blog.csdn.net/article/details/<span class="number">77151267</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="1-命令简介"><a href="#1-命令简介" class="headerlink" title="1.命令简介"></a>1.命令简介</h1><p>xargs 可以将 stdin 中以空格或换行符进行分隔的数据，形成以空格分隔的参数（arguments），传递给其他命令。因为以空格作为分隔符，所以有一些文件名或者其他意义的字符串内含有空格的时候，xargs 可能会误判。简单来说，xargs 的作用是给其他命令传递参数，是构建单行命令的重要组件之一。</p>
+<p>之所以要用到 xargs，是因为很多命令不支持使用管道 | 来传递参数，例如：</p>
+<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find /sbin <span class="literal">-perm</span> +<span class="number">700</span> | <span class="built_in">ls</span> <span class="literal">-l</span>         <span class="comment"># 这个命令是错误,因为标准输入不能作为ls的参数</span></span><br><span class="line">find /sbin <span class="literal">-perm</span> +<span class="number">700</span> | xargs <span class="built_in">ls</span> <span class="literal">-l</span>   <span class="comment"># 这样才是正确的</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="2-命令格式"><a href="#2-命令格式" class="headerlink" title="2.命令格式"></a>2.命令格式</h1><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xargs [<span class="type">OPTIONS</span>] [<span class="type">COMMAND</span>]</span><br></pre></td></tr></table></figure>
+
+<h1 id="3-选项说明"><a href="#3-选项说明" class="headerlink" title="3.选项说明"></a>3.选项说明</h1><p>注意，长选项的强制性参数对于短选项也是强制的。</p>
+          <!--noindex-->
+            <div class="post-button">
+              <a class="btn" href="/2021/02/26/linux-cmd-1/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+        <div class="post-eof"></div>
+      </footer>
+  </article>
+  
+  
+  
+
       
   
   
@@ -455,20 +540,20 @@
       <div class="site-state-item site-state-posts">
           <a href="/archives/">
         
-          <span class="site-state-item-count">2</span>
+          <span class="site-state-item-count">3</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
       <div class="site-state-item site-state-categories">
             <a href="/categories/">
           
-        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-count">2</span>
         <span class="site-state-item-name">分类</span></a>
       </div>
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
