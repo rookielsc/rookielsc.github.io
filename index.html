@@ -243,11 +243,6 @@
 
 <h1 id="1-命令简介"><a href="#1-命令简介" class="headerlink" title="1.命令简介"></a>1.命令简介</h1><p>xargs 可以将 stdin 中以空格或换行符进行分隔的数据，形成以空格分隔的参数（arguments），传递给其他命令。因为以空格作为分隔符，所以有一些文件名或者其他意义的字符串内含有空格的时候，xargs 可能会误判。简单来说，xargs 的作用是给其他命令传递参数，是构建单行命令的重要组件之一。</p>
 <p>之所以要用到 xargs，是因为很多命令不支持使用管道 | 来传递参数，例如：</p>
-<figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">find /sbin <span class="literal">-perm</span> +<span class="number">700</span> | <span class="built_in">ls</span> <span class="literal">-l</span>         <span class="comment"># 这个命令是错误,因为标准输入不能作为ls的参数</span></span><br><span class="line">find /sbin <span class="literal">-perm</span> +<span class="number">700</span> | xargs <span class="built_in">ls</span> <span class="literal">-l</span>   <span class="comment"># 这样才是正确的</span></span><br></pre></td></tr></table></figure>
-
-<h1 id="2-命令格式"><a href="#2-命令格式" class="headerlink" title="2.命令格式"></a>2.命令格式</h1><figure class="highlight powershell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">xargs [<span class="type">OPTIONS</span>] [<span class="type">COMMAND</span>]</span><br></pre></td></tr></table></figure>
-
-<h1 id="3-选项说明"><a href="#3-选项说明" class="headerlink" title="3.选项说明"></a>3.选项说明</h1><p>注意，长选项的强制性参数对于短选项也是强制的。</p>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/02/26/linux-cmd-1/#more" rel="contents">
@@ -328,9 +323,6 @@
 <li>普通模式(默认的集群模式)。</li>
 <li>镜像模式(把需要的队列做成镜像队列，存在于多个节点，属于RabbiMQ的HA方案，在对业务可靠性要求较高的场合中比较适用)。</li>
 </ol>
-<h2 id="RabbiMQ模式详解"><a href="#RabbiMQ模式详解" class="headerlink" title="RabbiMQ模式详解"></a>RabbiMQ模式详解</h2><p> abbitmq普通集群模式，是将交换机、绑定、队列的元数据复制到集群里的任何一个节点，但队列内容只存在于特定的节点中，客户端通过连接集群中任意一个节点，即可以生产和消费集群中的任何队列内容（因为每个节点都有集群中所有队列的元数据信息，如果队列内容不在本节点，则本节点会从远程节点获取内容，然后提供给消费者消费）。<br>   从该模式不难看出，普通集群可以让不同的繁忙队列从属于不同的节点，这样可以减轻单节点的压力，提升吞吐量，但是普通集群不能保证队列的高可用性，因为一旦队列所在节点宕机直接导致该队列无法使用，只能等待重启，所以要想在队列节点宕机或故障也能正常使用，就要复制队列内容到集群里的每个节点，需要创建镜像队列。<br>  rabbitmq镜像集群依赖于普通集群，所以需要先搭建rabbitmq普通集群。</p>
-<h2 id="环境说明"><a href="#环境说明" class="headerlink" title="环境说明"></a>环境说明</h2><p>要实现镜像模式，需要先搭建一个普通集群模式，在这个模式的基础上再配置镜像模式以实现高可用，本次实践部署rabbitmq采用的版本（rabbitmq:3.8.7-management）。</p>
-<h3 id="主机列表"><a href="#主机列表" class="headerlink" title="主机列表"></a>主机列表</h3>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/02/25/rabbitmq-mirror/#more" rel="contents">
@@ -407,49 +399,6 @@
           <span id="more"></span>
 <h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>本次实践部署mongodb集群，<br>主要借鉴于该博客（<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_42104521/article/details/103731266%EF%BC%89%E3%80%82">https://blog.csdn.net/weixin_42104521/article/details/103731266）。</a></p>
 <h1 id="一、原理简析"><a href="#一、原理简析" class="headerlink" title="一、原理简析"></a>一、原理简析</h1><p>Mongodb一共有三种集群搭建的方式：<br>Replica Set（副本集）、<br>Sharding（切片）<br>Master-Slaver（主从）<br><i--more--></i--more--></p>
-<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mongoDB目前已不推荐使用主从模式，取而代之的是副本集模式。副本集其实一种互为主从的关系，可理解为主主。<br>enbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;副本集：指将数据复制，多份保存，不同服务器保存同一份数据，在出现故障时自动切换。对应的是数据冗余、备份、镜像、读写分离、高可用性等关键词；<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;分片：则指为处理大量数据，将数据分开存储，不同服务器保存不同的数据，它们的数据总和即为整个数据集。追求的是高性能。</p>
-<h2 id="本实验模拟的MongoDB集群分以下几个层次或角色"><a href="#本实验模拟的MongoDB集群分以下几个层次或角色" class="headerlink" title="本实验模拟的MongoDB集群分以下几个层次或角色"></a>本实验模拟的MongoDB集群分以下几个层次或角色</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">mongos层：请求的入口，是router的角色，相当于监听，负责将请求分发到对应的存储数据的shard上，多副本冗余</span><br><span class="line"></span><br><span class="line">config server层：记录了mongos中使用到的元数据，自动向mongos同步最新的集群配置，多副本冗余</span><br><span class="line"></span><br><span class="line">shard主节点层：将数据分片，数据库拆分，并将其分散在不同的机器上，原理是将整个数据集合切块</span><br><span class="line">块分散到各个shard中，每个shard只负责总数据的一部分，通过一个均衡器来对各个shard均衡，多副本冗余</span><br><span class="line"></span><br><span class="line">shard副本层：是shard的备份，多副本冗余</span><br><span class="line"></span><br><span class="line">shard仲裁层：用于仲裁，不存储数据，使用最小的资源，需要基数个仲裁角色，且不能放在同一设备上</span><br></pre></td></tr></table></figure>
-
-<h2 id="主机角色端口规划"><a href="#主机角色端口规划" class="headerlink" title="主机角色端口规划"></a>主机角色端口规划</h2><table>
-<thead>
-<tr>
-<th>服务器</th>
-<th>192.168.1.32</th>
-<th>192.168.1.33</th>
-<th>192.168.1.35</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>服务端口</td>
-<td>mongos:27017</td>
-<td>mongos:27017</td>
-<td>mongos:27017</td>
-</tr>
-<tr>
-<td>服务端口</td>
-<td>config server:9001</td>
-<td>config server:9001</td>
-<td>config server:9001</td>
-</tr>
-<tr>
-<td>服务端口</td>
-<td>shard1 主节点:9005</td>
-<td>shard1 副节点:9005</td>
-<td>shard1 仲裁节点:9005</td>
-</tr>
-<tr>
-<td>服务端口</td>
-<td>shard2 仲裁节点:9006</td>
-<td>shard2 主节点:9006</td>
-<td>shard2 副节点:9006</td>
-</tr>
-<tr>
-<td>服务端口</td>
-<td>shard3 副节点:9007</td>
-<td>shard3 仲裁节点:9007</td>
-<td>shard3 主节点:9007</td>
-</tr>
-</tbody></table>
           <!--noindex-->
             <div class="post-button">
               <a class="btn" href="/2021/02/24/mongodb-cloud/#more" rel="contents">
