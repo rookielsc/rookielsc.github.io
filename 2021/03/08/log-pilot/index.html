@@ -21,17 +21,21 @@
   </script>
 
   <meta property="og:type" content="article">
-<meta property="og:title" content="etcd数据备份与恢复">
-<meta property="og:url" content="http://blog.kocdyun.cn/2021/02/26/k8s/etcd%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD/index.html">
+<meta property="og:title" content="Log-pilot日志采集收集java堆栈异常日志">
+<meta property="og:url" content="http://blog.kocdyun.cn/2021/03/08/log-pilot/index.html">
 <meta property="og:site_name" content="kocd&#39;s blog">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2021-02-26T05:56:20.935Z">
-<meta property="article:modified_time" content="2021-02-26T05:56:20.935Z">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200522145219720.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200522151832176.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200522152601655.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2021-03-08T07:54:14.715Z">
+<meta property="article:modified_time" content="2021-03-08T07:54:14.714Z">
 <meta property="article:author" content="菜菜">
-<meta property="article:tag" content="etcd">
+<meta property="article:tag" content="log-pilot,elk">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200522145219720.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70">
 
-<link rel="canonical" href="http://blog.kocdyun.cn/2021/02/26/k8s/etcd%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD/">
+<link rel="canonical" href="http://blog.kocdyun.cn/2021/03/08/log-pilot/">
 
 
 <script id="page-configurations">
@@ -44,7 +48,7 @@
   };
 </script>
 
-  <title>etcd数据备份与恢复 | kocd's blog</title>
+  <title>Log-pilot日志采集收集java堆栈异常日志 | kocd's blog</title>
   
 
 
@@ -193,7 +197,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://blog.kocdyun.cn/2021/02/26/k8s/etcd%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD/">
+    <link itemprop="mainEntityOfPage" href="http://blog.kocdyun.cn/2021/03/08/log-pilot/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/images/logo.jpg">
@@ -206,7 +210,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          etcd数据备份与恢复
+          Log-pilot日志采集收集java堆栈异常日志
         </h1>
 
         <div class="post-meta">
@@ -216,7 +220,7 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2021-02-26 13:56:20" itemprop="dateCreated datePublished" datetime="2021-02-26T13:56:20+08:00">2021-02-26</time>
+              <time title="创建时间：2021-03-08 15:54:14" itemprop="dateCreated datePublished" datetime="2021-03-08T15:54:14+08:00">2021-03-08</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -245,8 +249,8 @@
       <span class="post-meta-item-text">Changyan：</span>
     
     
-      <a title="changyan" href="/2021/02/26/k8s/etcd%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD/#SOHUCS" itemprop="discussionUrl">
-        <span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2021/02/26/k8s/etcd数据备份/" itemprop="commentCount"></span>
+      <a title="changyan" href="/2021/03/08/log-pilot/#SOHUCS" itemprop="discussionUrl">
+        <span id="changyan_count_unit" class="post-comments-count hc-comment-count" data-xid="2021/03/08/log-pilot/" itemprop="commentCount"></span>
       </a>
     
   </span>
@@ -264,78 +268,12 @@
       
         <span id="more"></span>
 
-<p>对 Etcd 数据进行备份及恢复，Etcd官方也提供了备份的文档，你有兴趣可以阅读一下。这里总结了一些实际操作，以便你后续可以借鉴并进行手动的备份和恢复。命令行里面的一些证书路径以及 endpoint 地址需要根据自己的集群参数进行更改。</p>
-<h1 id="数据备份"><a href="#数据备份" class="headerlink" title="数据备份"></a>数据备份</h1><pre><code>ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \
---cacert=/etc/kubernetes/pki/etcd/ca.crt \
---key=/etc/kubernetes/pki/etcd/peer.key \
---cert=/etc/kubernetes/pki/etcd/peer.crt \
-snapshot save ./new.snapshot.db
+<p>一、前言<br>       微服务应用发展迅速，建立一套集中式日志收集系统，将所有节点上的日志统一收集、管理、访问，将极大提高定位问题的效率。</p>
+<p> 二、k8s集群日志收集方案<br>       在测试环境部署了log-polit+elk的方案；部署完成之后，日志系统收集java多行异常日志，存在kibana分行的现象，如下图所示；<br><img src="https://img-blog.csdnimg.cn/20200522145219720.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>三、配置Log-polit<br>1）经过多次的测试，Fliebeat需要更改配置才能处理跨多行日志。使用Log-pilot组件，采集插件支持Filebeat、Fluentd两种，Log-Pilot 能够自动感知宿主机上容器的创建删除事件，进而动态配置容器日志采集配置文件，因此Filebeat、Fluentd的采集配置是有固定模板，配置则需要在Log-poilt打包镜像前配置。<br> 2）本人使用的版本为：log-pilot:v0.9.7-filebeat， log-polit官方源码：<a target="_blank" rel="noopener" href="https://github.com/AliyunContainerService/log-pilot.git">https://github.com/AliyunContainerService/log-pilot.git</a> ，通过git clone 下载到本地，在filebeat.tpl文件中添加红框中的的参数，如下图所示<br><img src="https://img-blog.csdnimg.cn/20200522151832176.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<pre><code> 参数详情：
 </code></pre>
-<h1 id="查看-etcd-集群的节点"><a href="#查看-etcd-集群的节点" class="headerlink" title="查看 etcd 集群的节点"></a>查看 etcd 集群的节点</h1><pre><code>ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \ 
---cacert=/etc/kubernetes/pki/etcd/ca.crt \ 
---cert=/etc/kubernetes/pki/etcd/peer.crt \ 
---key=/etc/kubernetes/pki/etcd/peer.key \
-member list
-</code></pre>
-<h1 id="停止所有节点上的-etcd！（注意是所有！！）"><a href="#停止所有节点上的-etcd！（注意是所有！！）" class="headerlink" title="停止所有节点上的 etcd！（注意是所有！！）"></a>停止所有节点上的 etcd！（注意是所有！！）</h1><pre><code>## 如果是 static pod，可以听过如下的命令进行 stop
-## 如果是 systemd 管理的，可以通过 systemctl stop etcd
-mv /etc/kubernetes/manifests/etcd.yaml /etc/kubernetes/
-</code></pre>
-<h1 id="数据清理"><a href="#数据清理" class="headerlink" title="数据清理"></a>数据清理</h1><p>依次在每个节点上，移除 etcd 数据</p>
-<pre><code>rm -rf /var/lib/etcd
-</code></pre>
-<h1 id="数据恢复"><a href="#数据恢复" class="headerlink" title="数据恢复"></a>数据恢复</h1><pre><code>## 依次在每个节点上，恢复 etcd 旧数据
-## 里面的 name，initial-advertise-peer-urls，initial-cluster=controlplane
-## 等参数，可以从 etcd pod 的 yaml 文件中获取到。
-ETCDCTL_API=3 etcdctl snapshot restore ./old.snapshot.db \
---data-dir=/var/lib/etcd \
---name=controlplane \
---initial-advertise-peer-urls=https://172.17.0.18:2380 \
---initial-cluster=controlplane=https://172.17.0.18:2380
-</code></pre>
-<h1 id="恢复-etcd-服务"><a href="#恢复-etcd-服务" class="headerlink" title="恢复 etcd 服务"></a>恢复 etcd 服务</h1><pre><code>## 依次在每个节点上，拉起 etcd 服务
-mv /etc/kubernetes/etcd.yaml /etc/kubernetes/manifests/
-systemctl restart kubelet
-</code></pre>
-<p>上述这些备份，都需要手动运行命令行进行操作。如果你的 Etcd 集群是运行在 Kubernetes 集群中的，你可以通过以下的定时 Job (CronJob) 来帮你自动化、周期性（如下的 YAML 文件中会每分钟对 Etcd 进行一次备份）地备份 Etcd 的数据。</p>
-<pre><code>apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: backup
-  namespace: kube-system
-spec:
-  # activeDeadlineSeconds: 100
-  schedule: &quot;*/1 * * * *&quot;
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-          - name: backup
-            image: k8s.gcr.io/etcd:3.2.24
-            env:
-            - name: ETCDCTL_API
-              value: &quot;3&quot;
-            command: [&quot;/bin/sh&quot;]
-            args: [&quot;-c&quot;, &quot;etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt --key=/etc/kubernetes/pki/etcd/healthcheck-client.key snapshot save /backup/etcd-snapshot-$(date +%Y-%m-%d_%H:%M:%S_%Z).db&quot;]
-            volumeMounts:
-            - mountPath: /etc/kubernetes/pki/etcd
-              name: etcd-certs
-              readOnly: true
-            - mountPath: /backup
-              name: backup
-          restartPolicy: OnFailure
-          hostNetwork: true
-          volumes:
-          - name: etcd-certs
-            hostPath:
-              path: /etc/kubernetes/pki/etcd
-              type: DirectoryOrCreate
-          - name: backup
-            hostPath:
-              path: /data/backup
-              type: DirectoryOrCreate
-</code></pre>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">multiline.pattern: &#39;^\[&#39;   	  &#x2F;&#x2F; 匹配是将多行日志所有不是以[符号开头的行合并成一行</span><br><span class="line">multiline.negate: true		 &#x2F;&#x2F;  是否需要对pattern条件转置使用，不翻转设为true，反转设置为false</span><br><span class="line">multiline.match: after 		&#x2F;&#x2F;   匹配pattern后，与前面（before）还是后面（after）的内容合并为一条日志</span><br></pre></td></tr></table></figure>
+<p>3）使用代码库的Dockerfile重新生成镜像、部署，kibana显示的日志合并为一行，如下图。<br><img src="https://img-blog.csdnimg.cn/20200522152601655.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
 
     </div>
 
@@ -366,7 +304,7 @@ spec:
   </li>
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
-    <a href="http://blog.kocdyun.cn/2021/02/26/k8s/etcd%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD/" title="etcd数据备份与恢复">http://blog.kocdyun.cn/2021/02/26/k8s/etcd数据备份/</a>
+    <a href="http://blog.kocdyun.cn/2021/03/08/log-pilot/" title="Log-pilot日志采集收集java堆栈异常日志">http://blog.kocdyun.cn/2021/03/08/log-pilot/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！
@@ -377,7 +315,7 @@ spec:
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/etcd/" rel="tag"># etcd</a>
+              <a href="/tags/log-pilot-elk/" rel="tag"># log-pilot,elk</a>
           </div>
 
         
@@ -386,13 +324,10 @@ spec:
         
     <div class="post-nav">
       <div class="post-nav-item">
-    <a href="/2021/02/26/k8s/pod%E6%95%85%E9%9A%9C%E6%8E%92%E6%9F%A5/" rel="prev" title="Kubernetes Pod 故障归类与排查方法">
-      <i class="fa fa-chevron-left"></i> Kubernetes Pod 故障归类与排查方法
+    <a href="/2021/03/01/linuxcdm/linux-cmd-sed/" rel="prev" title="Linux 命令（2）—— sed 命令">
+      <i class="fa fa-chevron-left"></i> Linux 命令（2）—— sed 命令
     </a></div>
-      <div class="post-nav-item">
-    <a href="/2021/03/01/linuxcdm/linux-cmd-xargs/" rel="next" title="Linux命令（1）—— xargs">
-      Linux命令（1）—— xargs <i class="fa fa-chevron-right"></i>
-    </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -456,7 +391,6 @@ spec:
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD"><span class="nav-number">1.</span> <span class="nav-text">数据备份</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9F%A5%E7%9C%8B-etcd-%E9%9B%86%E7%BE%A4%E7%9A%84%E8%8A%82%E7%82%B9"><span class="nav-number">2.</span> <span class="nav-text">查看 etcd 集群的节点</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%81%9C%E6%AD%A2%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9%E4%B8%8A%E7%9A%84-etcd%EF%BC%81%EF%BC%88%E6%B3%A8%E6%84%8F%E6%98%AF%E6%89%80%E6%9C%89%EF%BC%81%EF%BC%81%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">停止所有节点上的 etcd！（注意是所有！！）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%B8%85%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">数据清理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%95%B0%E6%8D%AE%E6%81%A2%E5%A4%8D"><span class="nav-number">5.</span> <span class="nav-text">数据恢复</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%81%A2%E5%A4%8D-etcd-%E6%9C%8D%E5%8A%A1"><span class="nav-number">6.</span> <span class="nav-text">恢复 etcd 服务</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 

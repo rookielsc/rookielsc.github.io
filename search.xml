@@ -1,6 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>Log-pilot日志采集收集java堆栈异常日志</title>
+    <url>/2021/03/08/log-pilot/</url>
+    <content><![CDATA[<span id="more"></span>
+
+<p>一、前言<br>       微服务应用发展迅速，建立一套集中式日志收集系统，将所有节点上的日志统一收集、管理、访问，将极大提高定位问题的效率。</p>
+<p> 二、k8s集群日志收集方案<br>       在测试环境部署了log-polit+elk的方案；部署完成之后，日志系统收集java多行异常日志，存在kibana分行的现象，如下图所示；<br><img src="https://img-blog.csdnimg.cn/20200522145219720.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"><br>三、配置Log-polit<br>1）经过多次的测试，Fliebeat需要更改配置才能处理跨多行日志。使用Log-pilot组件，采集插件支持Filebeat、Fluentd两种，Log-Pilot 能够自动感知宿主机上容器的创建删除事件，进而动态配置容器日志采集配置文件，因此Filebeat、Fluentd的采集配置是有固定模板，配置则需要在Log-poilt打包镜像前配置。<br> 2）本人使用的版本为：log-pilot:v0.9.7-filebeat， log-polit官方源码：<a href="https://github.com/AliyunContainerService/log-pilot.git">https://github.com/AliyunContainerService/log-pilot.git</a> ，通过git clone 下载到本地，在filebeat.tpl文件中添加红框中的的参数，如下图所示<br><img src="https://img-blog.csdnimg.cn/20200522151832176.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<pre><code> 参数详情：
+</code></pre>
+<figure class="highlight plain"><table><tr><td class="code"><pre><span class="line">multiline.pattern: &#39;^\[&#39;   	  &#x2F;&#x2F; 匹配是将多行日志所有不是以[符号开头的行合并成一行</span><br><span class="line">multiline.negate: true		 &#x2F;&#x2F;  是否需要对pattern条件转置使用，不翻转设为true，反转设置为false</span><br><span class="line">multiline.match: after 		&#x2F;&#x2F;   匹配pattern后，与前面（before）还是后面（after）的内容合并为一条日志</span><br></pre></td></tr></table></figure>
+<p>3）使用代码库的Dockerfile重新生成镜像、部署，kibana显示的日志合并为一行，如下图。<br><img src="https://img-blog.csdnimg.cn/20200522152601655.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MDA4Mjk1,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+]]></content>
+      <categories>
+        <category>Kubernetes专栏</category>
+      </categories>
+      <tags>
+        <tag>log-pilot,elk</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Docker部署MongoDB分片+副本集集群(实战)</title>
     <url>/2021/02/24/mongodb-cloud/</url>
     <content><![CDATA[<span id="more"></span>
